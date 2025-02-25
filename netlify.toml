@@ -1,0 +1,25 @@
+[build]
+command = "npm run build"
+publish = ".next"
+
+[[plugins]]
+package = "@netlify/plugin-nextjs"
+
+[build.environment]
+NODE_VERSION = "18"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+
+[functions]
+node_bundler = "esbuild"
+external_node_modules = ["@prisma/client", "@prisma/engines"]
+
+[dev]
+framework = "#custom"
+command = "npm run dev"
+targetPort = 3000
+port = 8888
+publish = "public"
