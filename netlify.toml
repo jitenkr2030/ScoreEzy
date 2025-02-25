@@ -17,8 +17,6 @@ force = true
 
 [functions]
 included_files = ["prisma/**"]
-
-[functions]
 node_bundler = "esbuild"
 external_node_modules = ["@prisma/client", "@prisma/engines"]
 
