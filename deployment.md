@@ -4,6 +4,9 @@
 
 1. Node.js 18+ and npm installed
 2. PostgreSQL database (Production)
+   - Install PostgreSQL server
+   - Create a new database for the application
+   - Set up database user with appropriate permissions
 3. Redis instance (for rate limiting)
 4. Domain name
 5. SSL certificate
@@ -13,12 +16,29 @@
 Create a `.env.production` file with the following variables:
 
 ```env
-DATABASE_URL=your_production_db_url
+# PostgreSQL connection string format:
+# postgresql://USER:PASSWORD@HOST:PORT/DATABASE
+DATABASE_URL=postgresql://your_user:your_password@localhost:5432/your_database
 NEXTAUTH_URL=https://your-domain.com
 NEXTAUTH_SECRET=your_nextauth_secret
 UPSTASH_REDIS_REST_URL=your_redis_url
 UPSTASH_REDIS_REST_TOKEN=your_redis_token
 ALLOWED_ORIGIN=https://your-domain.com
+```
+
+## Database Setup
+
+1. Create PostgreSQL database:
+```bash
+psql -U postgres
+CREATE DATABASE your_database;
+```
+
+2. Configure database access in pg_hba.conf
+
+3. Run database migrations:
+```bash
+npx prisma migrate deploy
 ```
 
 ## Deployment Steps
@@ -28,12 +48,7 @@ ALLOWED_ORIGIN=https://your-domain.com
 npm run build
 ```
 
-2. Run database migrations:
-```bash
-npx prisma migrate deploy
-```
-
-3. Start the production server:
+2. Start the production server:
 ```bash
 npm start
 ```
@@ -56,56 +71,11 @@ npm start
    - Scalable infrastructure
    - Managed databases
 
-## Deployment on Vercel
-
-1. Push your code to GitHub
-2. Connect your GitHub repository to Vercel
-3. Configure environment variables in Vercel dashboard
-4. Deploy
-
-## Post-Deployment Checklist
-
-- [ ] Verify database connections
-- [ ] Test authentication system
-- [ ] Check real-time features (WebSocket)
-- [ ] Validate file upload functionality
-- [ ] Test payment integration
-- [ ] Monitor error logging
-- [ ] Set up monitoring and analytics
-- [ ] Configure backup system
-
-## Performance Optimization
-
-1. Enable caching:
-   - Configure Redis caching
-   - Set up CDN
-
-2. Optimize assets:
-   - Compress images
-   - Minify JavaScript and CSS
-
-3. Enable PWA features:
-   - Verify service worker registration
-   - Test offline functionality
-
-## Security Measures
-
-1. Enable HTTPS
-2. Set up CORS properly
-3. Configure CSP headers
-4. Enable rate limiting
-5. Implement DDoS protection
-
-## Monitoring
-
-1. Set up error tracking (e.g., Sentry)
-2. Configure performance monitoring
-3. Set up uptime monitoring
-4. Enable log aggregation
-
 ## Backup Strategy
 
 1. Configure database backups
+   - Set up pg_dump for regular backups
+   - Store backups in secure location
 2. Set up file storage backups
 3. Implement backup testing procedure
 
