@@ -9,12 +9,23 @@ package = "@netlify/plugin-nextjs"
 NODE_VERSION = "18"
 NPM_FLAGS = "--legacy-peer-deps"
 DATABASE_URL = "${env:DATABASE_URL}"
+NEXT_PUBLIC_URL = "${env:URL}"
 
 [[redirects]]
 from = "/*"
 to = "/.netlify/functions/next_server"
 status = 200
 force = true
+
+[[redirects]]
+from = "/_next/*"
+to = "/_next/:splat"
+status = 200
+
+[[redirects]]
+from = "/api/*"
+to = "/.netlify/functions/next_server"
+status = 200
 
 [functions]
 included_files = ["prisma/**"]
@@ -27,3 +38,10 @@ command = "npm run dev"
 targetPort = 3000
 port = 8888
 publish = "public"
+
+[[headers]]
+for = "/*"
+[headers.values]
+X-Frame-Options = "DENY"
+X-XSS-Protection = "1; mode=block"
+X-Content-Type-Options = "nosniff"
