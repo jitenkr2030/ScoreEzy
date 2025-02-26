@@ -7,7 +7,7 @@
     }
   ],
   "env": {
-    "NEXTAUTH_URL": "https://your-vercel-domain.vercel.app",
+    "NEXTAUTH_URL": "${env.NEXTAUTH_URL}",
     "NODE_ENV": "production",
     "DATABASE_URL": "${env.DATABASE_URL}",
     "NEXTAUTH_SECRET": "${env.NEXTAUTH_SECRET}",
@@ -17,7 +17,7 @@
   },
   "build": {
     "env": {
-      "NEXTAUTH_URL": "https://your-vercel-domain.vercel.app",
+      "NEXTAUTH_URL": "${env.NEXTAUTH_URL}",
       "NODE_ENV": "production",
       "DATABASE_URL": "${env.DATABASE_URL}",
       "NEXTAUTH_SECRET": "${env.NEXTAUTH_SECRET}",
