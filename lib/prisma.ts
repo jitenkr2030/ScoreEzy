@@ -2,18 +2,23 @@ import { PrismaClient } from '@prisma/client'
 
 const prismaClientSingleton = () => {
   if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL environment variable is not set')
+    throw new Error('DATABASE_URL environment variable is not set. Please check your environment configuration.')
   }
 
-  return new PrismaClient({
-    log: ['error'],
-    errorFormat: 'minimal',
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL
+  try {
+    return new PrismaClient({
+      log: ['error', 'warn'],
+      errorFormat: 'pretty',
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL
+        }
       }
-    }
-  })
+    })
+  } catch (error) {
+    console.error('Failed to initialize Prisma client:', error)
+    throw new Error('Database connection failed. Please check your database configuration and credentials.')
+  }
 }
 
 type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>
