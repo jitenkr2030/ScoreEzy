@@ -8,6 +8,7 @@ package = "@netlify/plugin-nextjs"
 [build.environment]
 NODE_VERSION = "18"
 NPM_FLAGS = "--legacy-peer-deps"
+DATABASE_URL = "${env:DATABASE_URL}"
 
 [[redirects]]
 from = "/*"
