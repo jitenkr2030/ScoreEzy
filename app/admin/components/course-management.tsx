@@ -9,12 +9,21 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { CourseManagementService } from "@/app/services/course-management-service"
 
+interface Course {
+  id: number;
+  name: string;
+  instructor: string;
+  status: 'pending' | 'approved';
+  version: string;
+  price: number;
+}
+
 export function CourseManagement() {
-  const [courses, setCourses] = useState([
+  const [courses, setCourses] = useState<Course[]>([
     { id: 1, name: "Introduction to React", instructor: "John Doe", status: "pending", version: "1.0", price: 0 },
     { id: 2, name: "Advanced JavaScript", instructor: "Jane Smith", status: "approved", version: "2.1", price: 29.99 },
   ])
-  const [selectedCourse, setSelectedCourse] = useState(null)
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [isVersionDialogOpen, setIsVersionDialogOpen] = useState(false)
   const [isMarketplaceDialogOpen, setIsMarketplaceDialogOpen] = useState(false)
   const [changes, setChanges] = useState('')
@@ -22,9 +31,10 @@ export function CourseManagement() {
 
   const courseService = new CourseManagementService()
 
-  const handleVersionUpdate = async (courseId) => {
+  const handleVersionUpdate = async (courseId: number | undefined) => {
+    if (!courseId) return
     try {
-      const newVersion = await courseService.createCourseVersion(courseId, changes)
+      const newVersion = await courseService.createCourseVersion(courseId.toString(), changes)
       setCourses(courses.map(course =>
         course.id === courseId ? { ...course, version: newVersion.version } : course
       ))
@@ -35,9 +45,10 @@ export function CourseManagement() {
     }
   }
 
-  const handlePublishToMarketplace = async (courseId) => {
+  const handlePublishToMarketplace = async (courseId: number | undefined) => {
+    if (!courseId) return
     try {
-      await courseService.publishToMarketplace(courseId, parseFloat(price))
+      await courseService.publishToMarketplace(courseId.toString(), parseFloat(price))
       setCourses(courses.map(course =>
         course.id === courseId ? { ...course, price: parseFloat(price) } : course
       ))
@@ -45,6 +56,17 @@ export function CourseManagement() {
       setPrice('')
     } catch (error) {
       console.error('Failed to publish to marketplace:', error)
+    }
+  }
+
+  const approveCourse = async (courseId: number) => {
+    try {
+      await courseService.approveCourse(courseId.toString())
+      setCourses(courses.map(course =>
+        course.id === courseId ? { ...course, status: "approved" } : course
+      ))
+    } catch (error) {
+      console.error('Failed to approve course:', error)
     }
   }
 

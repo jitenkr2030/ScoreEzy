@@ -1,33 +1,36 @@
 import { PrismaClient } from '@prisma/client'
 
-const prismaClientSingleton = () => {
-  if (!process.env.DATABASE_URL) {
+const MAX_RETRIES = 3
+const RETRY_DELAY = 2000 // 2 seconds
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+let prismaInstance: PrismaClient | null = null
+
+const getPrismaClient = () => {
+  const databaseUrl = process.env.DATABASE_URL || process.env.NEXT_PUBLIC_DATABASE_URL
+  if (!databaseUrl) {
     throw new Error('DATABASE_URL environment variable is not set. Please check your environment configuration.')
   }
 
-  try {
-    return new PrismaClient({
-      log: ['error', 'warn'],
-      errorFormat: 'pretty',
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL
-        }
+  if (prismaInstance) return prismaInstance
+
+  prismaInstance = new PrismaClient({
+    log: ['error', 'warn'],
+    errorFormat: 'pretty',
+    datasources: {
+      db: {
+        url: databaseUrl
       }
-    })
-  } catch (error) {
-    console.error('Failed to initialize Prisma client:', error)
-    throw new Error('Database connection failed. Please check your database configuration and credentials.')
-  }
+    }
+  })
+
+  return prismaInstance
 }
 
-type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientSingleton | undefined
-}
-
-export const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
+export const prisma = globalForPrisma.prisma ?? getPrismaClient()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 

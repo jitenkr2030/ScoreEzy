@@ -1,32 +1,42 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts"
 import { AnalyticsService } from "@/app/services/analytics-service"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Initialize the analytics service outside the component
+const analyticsService = new AnalyticsService()
 
 export function StudentInsights() {
   const [selectedStudent, setSelectedStudent] = useState<string>()
   const [performanceData, setPerformanceData] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-
-  const analyticsService = new AnalyticsService()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (selectedStudent) {
       loadStudentPerformance(selectedStudent)
+    } else {
+      setPerformanceData([])
+      setError(null)
     }
   }, [selectedStudent])
 
   const loadStudentPerformance = async (studentId: string) => {
     setLoading(true)
+    setError(null)
     try {
       const data = await analyticsService.getStudentPerformanceInsights(studentId)
       setPerformanceData(data)
     } catch (error) {
       console.error("Error loading student performance:", error)
+      setError("Failed to load student performance data. Please try again later.")
+      setPerformanceData([])
     } finally {
       setLoading(false)
     }
@@ -53,7 +63,13 @@ export function StudentInsights() {
             </Select>
 
             {loading ? (
-              <div>Loading...</div>
+              <div className="p-4">
+                <Skeleton className="h-[200px] w-full" />
+              </div>
+            ) : error ? (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             ) : (
               performanceData.map((course, index) => (
                 <Card key={index} className="p-4">

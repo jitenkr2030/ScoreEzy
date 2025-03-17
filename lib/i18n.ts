@@ -1,18 +1,10 @@
-import { getRequestConfig } from 'next-intl/server';
+import { getRequestConfig, type GetRequestConfigParams } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
 export const locales = ['en', 'es', 'fr', 'de'];
 export const defaultLocale = 'en';
 
-export default getRequestConfig(async ({ locale }) => {
-  if (!locales.includes(locale as any)) notFound();
-
-  return {
-    messages: (await import(`../messages/${locale}.json`)).default
-  };
-});
-
-export function getTranslations(namespace: string, locale: string = defaultLocale) {
+export async function getTranslations(namespace: string, locale: string = defaultLocale) {
   try {
     return import(`../messages/${locale}/${namespace}.json`);
   } catch (error) {
@@ -27,3 +19,13 @@ export function formatCurrency(amount: number, currency: string = 'USD', locale:
     currency: currency
   }).format(amount);
 }
+
+export default getRequestConfig(async (params: GetRequestConfigParams) => {
+  const { locale } = params;
+  if (!locales.includes(locale || defaultLocale)) notFound();
+
+  return {
+    locale: locale || defaultLocale,
+    messages: (await import(`../messages/${locale || defaultLocale}.json`)).default
+  };
+});

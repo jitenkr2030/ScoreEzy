@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth/next"
-import { authOptions } from "./api/auth/[...nextauth]/route"
+import { authOptions } from "./api/auth/auth.config"
 import { Suspense, lazy } from "react"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"

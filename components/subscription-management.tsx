@@ -14,7 +14,7 @@ interface Subscription {
   features: string[]
 }
 
-export function SubscriptionManagement() {
+export default function SubscriptionManagement() {
   const { data: session } = useSession()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [currentSubscription, setCurrentSubscription] = useState<string | null>(null)

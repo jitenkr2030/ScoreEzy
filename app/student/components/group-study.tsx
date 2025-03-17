@@ -36,7 +36,13 @@ export function GroupStudy() {
 
   const createGroup = () => {
     if (newGroupName) {
-      setGroups([...groups, { id: Date.now(), name: newGroupName, members: 1 }])
+      setGroups([...groups, { 
+        id: Date.now(), 
+        name: newGroupName, 
+        members: 1,
+        activeUsers: 1,
+        nextSession: new Date().toISOString()
+      }])
       setNewGroupName("")
     }
   }

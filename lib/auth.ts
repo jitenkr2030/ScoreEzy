@@ -4,6 +4,24 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { compare } from "bcrypt"
 import prisma from "./prisma"
 
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      email: string;
+      name: string;
+      role: string;
+    }
+  }
+
+  interface User {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
@@ -30,7 +48,7 @@ export const authOptions: NextAuthOptions = {
             email: credentials.email,
           },
         })
-        if (!user) {
+        if (!user || !user.name) {
           return null
         }
         const isPasswordValid = await compare(credentials.password, user.password)
@@ -49,7 +67,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role
+        token.role = (user as any).role
       }
       return token
     },
@@ -66,8 +84,12 @@ export function hasRequiredRole(session: any, requiredRoles: string[]) {
   return session?.user?.role && requiredRoles.includes(session.user.role)
 }
 
+type RolePermissions = {
+  [key: string]: string[];
+};
+
 export function hasPermission(session: any, permission: string) {
-  const rolePermissions = {
+  const rolePermissions: RolePermissions = {
     admin: ['all'],
     instructor: ['create_course', 'edit_course', 'view_students', 'grade_assignments'],
     student: ['view_course', 'submit_assignment', 'view_grades'],
@@ -81,7 +103,7 @@ export function hasPermission(session: any, permission: string) {
 }
 
 export function getDefaultRedirectPath(role: string) {
-  const paths = {
+  const paths: { [key: string]: string } = {
     admin: '/admin',
     instructor: '/instructor',
     student: '/student',

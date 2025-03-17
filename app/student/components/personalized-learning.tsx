@@ -8,9 +8,13 @@ import { AIPersonalizationService } from "@/app/services/ai-personalization"
 import { Progress } from "@/components/ui/progress"
 import { Course } from "@prisma/client"
 
+interface ExtendedCourse extends Course {
+  progress?: number;
+}
+
 export function PersonalizedLearning() {
   const [date, setDate] = useState<Date | undefined>(new Date())
-  const [recommendedCourses, setRecommendedCourses] = useState<Course[]>([])
+  const [recommendedCourses, setRecommendedCourses] = useState<ExtendedCourse[]>([])
   const [learningStyle, setLearningStyle] = useState<any>(null)
   const [studyPath, setStudyPath] = useState<any[]>([])
   
@@ -52,7 +56,7 @@ export function PersonalizedLearning() {
                 <span>{course.title}</span>
                 <div className="flex items-center space-x-2">
                   <div className="w-32 h-2 bg-gray-200 rounded-full">
-                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${course.progress}%` }}></div>
+                    <div className="h-full bg-blue-500 rounded-full" style={{ width: course.progress ? `${course.progress}%` : '0%' }}></div>
                   </div>
                   <Button variant="outline" size="sm">
                     Enroll

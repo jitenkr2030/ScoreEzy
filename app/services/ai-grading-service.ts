@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 
 export interface GradingCriteria {
   id: string
@@ -21,6 +22,16 @@ export interface GradingResult {
   gradedAt: Date
 }
 
+interface Assignment {
+  id: string
+  gradingCriteria: GradingCriteria[]
+}
+
+interface Submission {
+  id: string
+  assignment: Assignment
+}
+
 export class AIGradingService {
   async createGradingCriteria(assignmentId: string, criteria: Omit<GradingCriteria, 'id'>): Promise<GradingCriteria> {
     return await prisma.gradingCriteria.create({
@@ -34,17 +45,17 @@ export class AIGradingService {
   }
 
   async gradeSubmission(submissionId: string, content: string): Promise<GradingResult> {
-    // Fetch assignment criteria
+    // Get submission with assignment and grading criteria
     const submission = await prisma.submission.findUnique({
       where: { id: submissionId },
       include: {
         assignment: {
           include: {
-            gradingCriteria: true
+            criteria: true
           }
         }
       }
-    })
+    }) as Submission | null
 
     if (!submission) {
       throw new Error('Submission not found')
@@ -77,10 +88,10 @@ export class AIGradingService {
         submissionId,
         score: parseFloat(normalizedScore),
         feedback,
-        criteriaScores,
+        criteriaScores: criteriaScores as unknown as GradingResult['criteriaScores'],
         gradedAt: new Date()
       }
-    })
+    }) as unknown as GradingResult
   }
 
   private async analyzeSubmission(content: string, rubric: string[]): Promise<{ score: number; feedback: string }> {
@@ -89,7 +100,7 @@ export class AIGradingService {
     // For now, return a placeholder implementation
     return {
       score: 0.85,
-      feedback: 'Good work! Consider improving...' // AI-generated feedback
+      feedback: 'Good work! Consider improving...'
     }
   }
 
@@ -101,7 +112,7 @@ export class AIGradingService {
   }
 
   async getGradingHistory(assignmentId: string): Promise<GradingResult[]> {
-    return await prisma.gradingResult.findMany({
+    const results = await prisma.gradingResult.findMany({
       where: {
         submission: {
           assignmentId
@@ -111,6 +122,10 @@ export class AIGradingService {
         gradedAt: 'desc'
       }
     })
+    return results.map(result => ({
+      ...result,
+      criteriaScores: result.criteriaScores as GradingResult['criteriaScores']
+    }))
   }
 
   async updateGradingCriteria(criteriaId: string, updates: Partial<GradingCriteria>): Promise<GradingCriteria> {

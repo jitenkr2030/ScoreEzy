@@ -1,4 +1,4 @@
-import { Course, User, UserProgress } from '@prisma/client'
+import { Course, User } from '@prisma/client'
 
 interface LearningStyle {
   visual: number
@@ -13,7 +13,11 @@ interface StudentProfile {
   strengths: string[]
   weaknesses: string[]
   completedCourses: Course[]
-  progress: UserProgress[]
+  progress: Array<{
+    courseId: string
+    score: number
+    completedAt: Date
+  }>
 }
 
 export class AIPersonalizationService {

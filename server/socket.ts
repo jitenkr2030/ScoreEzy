@@ -1,8 +1,8 @@
 import { createServer } from "http"
 import { parse } from "url"
 import next from "next"
-import { Server } from "socket.io"
-import { interceptClientRequest } from "@mswjs/interceptors/lib/interceptors/ClientRequest"
+import { WebSocketServer } from 'ws'
+import { NotificationService } from '@/app/services/notification-service'
 
 const dev = process.env.NODE_ENV !== "production"
 const app = next({ dev })
@@ -10,38 +10,38 @@ const handle = app.getRequestHandler()
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
+    if (req.headers.upgrade?.toLowerCase() === 'websocket') {
+      // Let the WebSocket server handle the upgrade
+      return;
+    }
     const parsedUrl = parse(req.url!, true)
     handle(req, res, parsedUrl)
   })
 
-  const io = new Server(server)
+  const wss = new WebSocketServer({ server })
 
-  // Setup interceptor
-  interceptClientRequest((request) => {
-    // Your interception logic here
-    console.log("Intercepted request:", request.url)
-  })
-
-  io.on("connection", (socket) => {
+  wss.on('connection', (ws, req) => {
     console.log("A user connected")
+    const userId = req.headers['x-user-id'];
+    
+    if (userId) {
+      const notificationService = NotificationService.getInstance();
+      notificationService.addConnection(userId.toString(), ws);
+    }
 
-    socket.on("join-room", (roomId) => {
-      socket.join(roomId)
-      console.log(`User joined room ${roomId}`)
-    })
+    ws.on("ping", () => {
+      ws.send(JSON.stringify({ type: 'pong' }));
+    });
 
-    socket.on("leave-room", (roomId) => {
-      socket.leave(roomId)
-      console.log(`User left room ${roomId}`)
-    })
+    ws.on("close", () => {
+      if (userId) {
+        console.log(`User ${userId} disconnected`);
+      }
+    });
 
-    socket.on("send-message", (message, roomId) => {
-      io.to(roomId).emit("receive-message", message)
-    })
-
-    socket.on("disconnect", () => {
-      console.log("A user disconnected")
-    })
+    ws.on("error", (error) => {
+      console.error("WebSocket error:", error);
+    });
   })
 
   server.listen(3000, () => {

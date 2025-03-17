@@ -13,7 +13,9 @@ export function Integrations() {
     marketingTools: false,
   })
 
-  const toggleIntegration = (key) => {
+  type IntegrationKey = 'crm' | 'paymentGateway' | 'marketingTools';
+
+  const toggleIntegration = (key: IntegrationKey) => {
     setIntegrations((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 

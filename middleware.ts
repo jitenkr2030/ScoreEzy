@@ -14,6 +14,16 @@ const ratelimit = new Ratelimit({
 })
 
 export async function middleware(request: NextRequest) {
+  // Skip WebSocket requests and rate limiting for WebSocket connections
+  if (request.headers.get("upgrade")?.toLowerCase() === "websocket") {
+    const response = NextResponse.next()
+    // Set CORS headers for WebSocket upgrade
+    response.headers.set("Access-Control-Allow-Origin", process.env.ALLOWED_ORIGIN || "*")
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-user-id")
+    return response
+  }
+
   const ip = request.ip ?? "127.0.0.1"
   const { success } = await ratelimit.limit(ip)
 

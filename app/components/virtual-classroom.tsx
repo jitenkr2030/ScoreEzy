@@ -1,29 +1,53 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useSession } from "next-auth/react"
+
+interface Message {
+  id: number
+  user: string
+  content: string
+  timestamp: Date
+}
+
+interface DrawingData {
+  x: number
+  y: number
+}
+
+interface Participant {
+  id: string
+  name: string
+}
+
+interface BreakoutRoom {
+  id: string
+  name: string
+}
 
 export function VirtualClassroom() {
   const { data: session } = useSession()
-  const [messages, setMessages] = useState([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [isDrawing, setIsDrawing] = useState(false)
-  const [drawingData, setDrawingData] = useState([])
-  const canvasRef = useRef(null)
-  const [participants, setParticipants] = useState([])
+  const [drawingData, setDrawingData] = useState<DrawingData[]>([])
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [participants, setParticipants] = useState<Participant[]>([])
   const [isScreenSharing, setIsScreenSharing] = useState(false)
-  const [breakoutRooms, setBreakoutRooms] = useState([])
-  const [currentRoom, setCurrentRoom] = useState(null)
+  const [breakoutRooms, setBreakoutRooms] = useState<BreakoutRoom[]>([])
+  const [currentRoom, setCurrentRoom] = useState<string | null>(null)
+  const socketRef = useRef<WebSocket | null>(null)
 
   useEffect(() => {
     if (session?.user?.email) {
-      const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000')
+      socketRef.current = new WebSocket(`${window.location.origin.replace(/^http/, 'ws')}/api/notifications/ws?userId=${session.user.id}`)
       
-      socket.onmessage = (event) => {
+      socketRef.current.onmessage = (event) => {
         const data = JSON.parse(event.data)
         switch(data.type) {
           case 'chat':
@@ -41,12 +65,20 @@ export function VirtualClassroom() {
         }
       }
 
-      return () => socket.close()
+      socketRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error)
+      }
+
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.close()
+        }
+      }
     }
   }, [session])
 
   const sendMessage = () => {
-    if (newMessage.trim() && session?.user?.id) {
+    if (newMessage.trim() && session?.user?.id && socketRef.current) {
       const messageData = {
         type: 'chat',
         message: {
@@ -56,42 +88,49 @@ export function VirtualClassroom() {
           timestamp: new Date()
         }
       }
-      socket.send(JSON.stringify(messageData))
+      socketRef.current.send(JSON.stringify(messageData))
       setNewMessage("")
     }
   }
 
-  const startDrawing = (e) => {
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return
     setIsDrawing(true)
     const ctx = canvasRef.current.getContext('2d')
+    if (!ctx) return
     ctx.beginPath()
     ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
   }
 
-  const draw = (e) => {
-    if (!isDrawing) return
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !canvasRef.current) return
     const ctx = canvasRef.current.getContext('2d')
+    if (!ctx) return
     ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
     ctx.stroke()
     
-    const drawingData = {
-      type: 'drawing',
-      data: {
-        x: e.nativeEvent.offsetX,
-        y: e.nativeEvent.offsetY
+    if (socketRef.current) {
+      const drawingData = {
+        type: 'drawing',
+        data: {
+          x: e.nativeEvent.offsetX,
+          y: e.nativeEvent.offsetY
+        }
       }
+      socketRef.current.send(JSON.stringify(drawingData))
     }
-    socket.send(JSON.stringify(drawingData))
+  }
+
+  const updateCanvas = (data: { x: number; y: number }) => {
+    if (!canvasRef.current) return
+    const ctx = canvasRef.current.getContext('2d')
+    if (!ctx) return
+    ctx.lineTo(data.x, data.y)
+    ctx.stroke()
   }
 
   const stopDrawing = () => {
     setIsDrawing(false)
-  }
-
-  const updateCanvas = (data) => {
-    const ctx = canvasRef.current.getContext('2d')
-    ctx.lineTo(data.x, data.y)
-    ctx.stroke()
   }
 
   const toggleScreenShare = async () => {
@@ -109,12 +148,14 @@ export function VirtualClassroom() {
     }
   }
 
-  const joinBreakoutRoom = (roomId) => {
+  const joinBreakoutRoom = (roomId: string) => {
     setCurrentRoom(roomId)
-    socket.send(JSON.stringify({
-      type: 'joinRoom',
-      roomId
-    }))
+    if (socketRef.current) {
+      socketRef.current.send(JSON.stringify({
+        type: 'joinRoom',
+        roomId
+      }))
+    }
   }
 
   return (
@@ -200,7 +241,7 @@ export function VirtualClassroom() {
               {messages.map((msg) => (
                 <div key={msg.id} className="mb-2">
                   <span className="font-bold">{msg.user}: </span>
-                  <span>{msg.message}</span>
+                  <span>{msg.content}</span>
                 </div>
               ))}
             </div>

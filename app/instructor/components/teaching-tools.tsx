@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,35 +8,49 @@ import { Label } from "@/components/ui/label"
 import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AIGradingService } from "@/app/services/ai-grading-service"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+
+interface Assignment {
+  id: number
+  title: string
+  type: string
+  status: string
+  score: number | null
+}
 
 export function TeachingTools() {
   const [date, setDate] = useState<Date | undefined>(new Date())
-  const [assignments, setAssignments] = useState([
+  const [assignments, setAssignments] = useState<Assignment[]>([
     { id: 1, title: "JavaScript Basics Quiz", type: "Multiple Choice", status: "Graded", score: 85 },
     { id: 2, title: "React Project", type: "Project Submission", status: "Pending", score: null },
   ])
-  const [selectedAssignment, setSelectedAssignment] = useState(null)
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [isGradingDialogOpen, setIsGradingDialogOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [gradingCriteria, setGradingCriteria] = useState({
     name: "",
     weight: 1,
     rubric: []
   })
 
-  const gradingService = new AIGradingService()
+  const gradingService = React.useMemo(() => new AIGradingService(), [])
 
-  const handleGradeAssignment = async (assignmentId) => {
+  const handleGradeSubmission = async (assignmentId: string) => {
+    setIsLoading(true)
+    setError(null)
     try {
       const result = await gradingService.gradeSubmission(assignmentId, "submission content")
       setAssignments(assignments.map(assignment =>
-        assignment.id === assignmentId ? { ...assignment, status: "Graded", score: result.score } : assignment
+        assignment.id.toString() === assignmentId ? { ...assignment, status: "Graded", score: result.score } : assignment
       ))
-      setIsGradingDialogOpen(false)
     } catch (error) {
-      console.error('Failed to grade assignment:', error)
+      console.error('Error grading submission:', error)
+      setError('Failed to grade submission')
+    } finally {
+      setIsLoading(false)
     }
   }
-
   return (
     <div className="space-y-6">
       <Card>
@@ -105,6 +119,11 @@ export function TeachingTools() {
           <DialogHeader>
             <DialogTitle>Grade Assignment</DialogTitle>
           </DialogHeader>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           <div className="space-y-4">
             <div>
               <Label>Grading Criteria</Label>
@@ -112,6 +131,7 @@ export function TeachingTools() {
                 value={gradingCriteria.name}
                 onChange={(e) => setGradingCriteria({ ...gradingCriteria, name: e.target.value })}
                 placeholder="Enter criteria name"
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -121,13 +141,20 @@ export function TeachingTools() {
                 value={gradingCriteria.weight}
                 onChange={(e) => setGradingCriteria({ ...gradingCriteria, weight: parseFloat(e.target.value) })}
                 placeholder="Enter criteria weight"
+                disabled={isLoading}
               />
             </div>
-            <Button onClick={() => handleGradeAssignment(selectedAssignment?.id)}>Start AI Grading</Button>
+            <Button 
+              onClick={() => selectedAssignment?.id && handleGradeSubmission(selectedAssignment.id.toString())}
+              disabled={isLoading}
+            >
+              {isLoading ? "Grading..." : "Start AI Grading"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
     </div>
   )
 }
+export default TeachingTools
 
